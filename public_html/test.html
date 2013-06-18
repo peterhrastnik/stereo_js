@@ -1,0 +1,179 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>MPO Testing</title>
+
+<script type="text/javascript">
+function loadImg() {
+	
+	var xhr = new XMLHttpRequest();
+	xhr.open('GET', 'image.mpo', true);
+	xhr.responseType = 'arraybuffer';
+
+	
+	xhr.onload = function(e) {
+	  if (this.status === 200) {
+	    // Note: .response instead of .responseText
+	    var uInt8Array = new Uint8Array(this.response);
+	   
+            var newJpeg = getMPOSplitPosition(uInt8Array);
+                         
+	    var base64_1 = arrayBufferToBase64(uInt8Array.subarray(0, newJpeg));
+	    var base64_2 = arrayBufferToBase64(uInt8Array.subarray(newJpeg));
+	               
+            var img1 = createImageFromBase64(base64_1, 320, 240);
+            var img2 = createImageFromBase64(base64_2, 320, 240);
+	               
+            document.body.appendChild(img1);
+            document.body.appendChild(img2);
+            
+            
+            
+            
+            /*
+	    var img=new Image();
+	    img.src="data:image/jpeg;base64,"+base64;
+	    
+	    
+	    var canvas1 = document.createElement('canvas');
+	    var canvas2 = document.createElement('canvas');
+	    var canvas3 = document.createElement('canvas');
+	    
+	    document.body.appendChild(canvas3);
+	    
+	    var ctx1=canvas1.getContext("2d");
+	    var ctx2=canvas2.getContext("2d");
+	    var ctx3=canvas3.getContext("2d");
+	    
+	    ctx1.drawImage(img,0,0);
+	    ctx2.drawImage(img,0,0);
+	    
+	    var imgData1=ctx1.getImageData(0,0,canvas1.width, canvas1.height);
+	    
+	    
+	    for (var i=0;i<imgData1.data.length;i+=4)
+	    {
+	    	var red1 = imgData1.data[i+0];
+	    	var green1 = imgData1.data[i+1];
+	    	var blue1 = imgData1.data[i+2];
+	    	var alpha1 = imgData1.data[i+3];
+	    	
+	    	imgData1.data[i+0] = red1;
+	    	imgData1.data[i+1] = green1;
+	    	imgData1.data[i+2] = 255-blue1;
+	    	imgData1.data[i+3] = alpha1;
+	    }
+	    
+	    
+	    ctx3.putImageData(imgData1, 0, 0);
+	    */
+	    //ctx3.fillStyle="#FF0000";
+	    //ctx3.fillRect(0,0,150,75);
+	    
+		//document.write(base64String);
+	  }
+	};
+	
+	xhr.send();
+	
+	
+	
+	
+}
+
+
+function createImageFromBase64(base64ImgData, width, height) {
+  	    var img = new Image();
+	    img.src = 'data:image/jpeg;base64,' + base64ImgData + '';
+	   
+            img.height = height;
+            img.width = width;  
+            
+            return img;
+}
+
+
+function getMPOSplitPosition(uInt8Array) {
+    
+            //FFD9 FFD8
+            //FF: 255
+            //D9: 217
+            //0
+            //FF: 255
+            //D8: 216
+    
+           var _FF = 255;
+            var _D9 = 217;
+            var _D8 = 216;
+            
+            var newJpeg = null;
+            
+            var occuredFFD9 = false;
+            var occured00 = false;
+
+            var prevByte = null;
+            for (var i=0; i < uInt8Array.length; i++) {
+                var currByte = uInt8Array[i];
+                
+                if (currByte == _D9 && prevByte == _FF ) {                    
+                    occuredFFD9 = true;
+                    continue;
+                }
+                    
+                if (occuredFFD9) {
+                    
+                    //alert(currByte + "-" + uInt8Array[i+1]);
+                    
+                    if (currByte == 0) {
+                        occured00 == true;
+                        continue;
+                    } else if (currByte == _FF && uInt8Array[i+1] == _D8) {                                                                       
+                        newJpeg = i;
+                        occuredFFD9 = false;
+                        occured00 == false;
+                        continue;
+                    } else {
+                        occuredFFD9 = false;
+                        occured00 == false;
+                        continue;
+                    }
+               
+                } 
+                
+                
+                
+                if (currByte == _D8 && prevByte == _FF && occuredFFD9 == true) {
+                    newJpeg = i-1;
+                    return newJpeg;
+                } 
+
+                if (newJpeg != null) {
+                    break;
+                }
+                
+                var prevByte = currByte;
+                
+            }
+            
+       return newJpeg;
+}
+
+function arrayBufferToBase64( uInt8Array ) {
+    var binary = '';
+    var bytes = uInt8Array;
+    var len = bytes.byteLength;
+
+    for (var i = 0; i < len; i++) {
+        binary += String.fromCharCode( bytes[ i ] );
+    }
+    return window.btoa( binary );
+}
+
+</script>
+
+</head>
+<body onload="loadImg();">
+
+</body>
+</html>
